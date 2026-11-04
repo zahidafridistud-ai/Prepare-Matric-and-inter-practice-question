@@ -1,4 +1,4 @@
-# Prepare-Matric-and-inter-practice-question# 📚 Imtihan Saathi
+# 📚 Imtihan Saathi
 
 Exam practice for Pakistani **Matric and Inter** students, built from their **own textbook chapters**.
 
