@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Imtihan Saathi – Chapter Practice</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f6f7f4;--card:#fff;--ink:#1c2b24;--mut:#5d6b64;--acc:#0b6b4a;--accink:#fff;--bd:#dfe4de;--ok:#e3f4ea;--okb:#2e8b57;--mid:#fff4dc;--midb:#c28a00;--bad:#fde8e6;--badb:#c0392b}
+@media (prefers-color-scheme:dark){:root{color-scheme:dark;--bg:#111a16;--card:#1a2620;--ink:#e8efe9;--mut:#9fb0a6;--acc:#4cc38a;--accink:#08251a;--bd:#2c3b33;--ok:#183626;--okb:#4cc38a;--mid:#3a3010;--midb:#e0b030;--bad:#3b1d1a;--badb:#ef7a6b}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 Inter,system-ui,sans-serif}
+.wrap{max-width:760px;margin:0 auto;padding:20px 16px 60px}
+h1{font-size:1.5rem;margin:0}.sub{color:var(--mut);margin:2px 0 18px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:16px;margin-bottom:14px}
+label.l{font-size:.8rem;font-weight:600;color:var(--mut);display:block;margin-bottom:4px}
+select,textarea,input{width:100%;border:1px solid var(--bd);border-radius:10px;padding:10px;background:var(--bg);color:var(--ink);font:inherit}
+input[type=radio]{width:auto}
+textarea{min-height:150px;resize:vertical}
+.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:12px 0}
+button{background:var(--acc);color:var(--accink);border:0;border-radius:10px;padding:11px 18px;font:600 1rem Inter,sans-serif;cursor:pointer}
+button:disabled{opacity:.5;cursor:wait}
+.q{font-weight:600;margin:0 0 8px}.tag{font-size:.75rem;color:var(--mut);font-weight:400}
+.opt{display:block;padding:8px 10px;border:1px solid var(--bd);border-radius:9px;margin:6px 0;cursor:pointer}
+.res{margin-top:12px;border-radius:10px;padding:12px;border-left:5px solid}
+.res.g{background:var(--ok);border-color:var(--okb)}.res.m{background:var(--mid);border-color:var(--midb)}.res.b{background:var(--bad);border-color:var(--badb)}
+.res h4{margin:0 0 6px}.res p{margin:6px 0}
+.ur{direction:rtl;text-align:right;font-family:'Noto Nastaliq Urdu','Noto Naskh Arabic',serif;line-height:2.2}
+#msg{color:var(--mut);margin:8px 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>📚 Imtihan Saathi</h1>
+  <p class="sub">Upload or paste a chapter from your own textbook. Get practice questions and have your answers checked against it.</p>
+
+  <div class="card">
+    <label class="l" for="file">Chapter file (.txt, .pdf or photo of a page) or paste text below</label>
+    <input type="file" id="file" accept=".txt,.pdf,image/png,image/jpeg,image/webp,text/plain">
+    <textarea id="chap" placeholder="Paste the chapter text here (Biology, Physics, Pak Studies, English…)"></textarea>
+    <div class="row">
+      <div><label class="l" for="board">Board</label><select id="board"><option value="">Not specified</option><option>Punjab</option><option>Sindh</option><option>Federal (FBISE)</option><option>KPK</option><option>Balochistan</option><option>AJK</option></select></div>
+      <div><label class="l" for="subject">Subject</label><input id="subject" list="subjects" placeholder="e.g. Biology" maxlength="60"><datalist id="subjects"><option>Biology</option><option>Physics</option><option>Chemistry</option><option>Mathematics</option><option>Computer Science</option><option>English</option><option>Urdu</option><option>Islamiyat</option><option>Pakistan Studies</option><option>Economics</option><option>Accounting</option><option>Statistics</option></datalist></div>
+      <div><label class="l" for="chname">Chapter name / no.</label><input id="chname" placeholder="e.g. Ch 5 – Cell Cycle" maxlength="80"></div>
+      <div><label class="l" for="book">Book (optional)</label><input id="book" placeholder="e.g. Punjab Textbook Board" maxlength="80"></div>
+    </div>
+    <div class="row">
+      <div><label class="l" for="lvl">Level</label><select id="lvl"><option>Matric (9th/10th)</option><option>Inter (11th/12th)</option></select></div>
+      <div><label class="l" for="typ">Question type</label><select id="typ"><option value="mix">Mixed (MCQ + short + long)</option><option value="mcq">MCQs only</option><option value="short">Short questions</option><option value="long">Long questions</option></select></div>
+      <div><label class="l" for="cnt">How many</label><select id="cnt"><option>5</option><option>8</option><option>10</option></select></div>
+      <div><label class="l" for="lang">Explain in</label><select id="lang"><option value="English">English</option><option value="Urdu">اردو (Urdu)</option><option value="Roman Urdu">Roman Urdu</option></select></div>
+    </div>
+    <button id="gen">Create practice questions</button>
+    <div id="msg"></div>
+  </div>
+
+  <div id="quiz"></div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+let chapter='', QS=[];
+
+function esc(s){const d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML}
+const lang=()=>$('lang').value;
+const meta=()=>({board:$('board').value,subject:$('subject').value,book:$('book').value,chapter_name:$('chname').value});
+
+async function post(url,body){
+  const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok) throw new Error(d.error||('Request failed ('+r.status+')'));
+  return d;
+}
+
+$('file').addEventListener('change',async e=>{
+  const f=e.target.files[0]; if(!f) return;
+  if(f.type==='text/plain'||f.name.endsWith('.txt')){
+    const r=new FileReader(); r.onload=()=>{$('chap').value=r.result}; r.readAsText(f); return;
+  }
+  $('msg').textContent='Reading text from your file…';
+  const fd=new FormData(); fd.append('file',f);
+  try{
+    const r=await fetch('/api/extract',{method:'POST',body:fd});
+    const d=await r.json();
+    if(!r.ok) throw new Error(d.error||'Could not read file');
+    $('chap').value=d.text; $('msg').textContent='Done. Check the text, then create questions.';
+  }catch(err){$('msg').textContent=err.message}
+});
+
+$('gen').onclick=async()=>{
+  chapter=$('chap').value.trim();
+  if(chapter.length<200){$('msg').textContent='Please add a longer chapter excerpt (at least a few paragraphs).';return}
+  $('gen').disabled=true; $('msg').textContent='Reading your chapter and writing questions…'; $('quiz').innerHTML='';
+  try{
+    const d=await post('/api/generate',{chapter,level:$('lvl').value,type:$('typ').value,count:+$('cnt').value,...meta()});
+    QS=d.questions||[]; render(); $('msg').textContent='';
+  }catch(e){$('msg').textContent=e.message}
+  $('gen').disabled=false;
+};
+
+function render(){
+  const q=$('quiz'); q.innerHTML='';
+  const title=[$('subject').value,$('chname').value].filter(Boolean).join(' – ');
+  if(title){const t=document.createElement('h2');t.textContent=title;t.style.fontSize='1.1rem';q.appendChild(t)}
+  QS.forEach((it,i)=>{
+    const c=document.createElement('div'); c.className='card';
+    let body=`<p class="q">Q${i+1}. ${esc(it.q)} <span class="tag">(${esc(it.type)} · ${esc(it.marks||1)} mark${(it.marks||1)>1?'s':''})</span></p>`;
+    if(it.type==='mcq'&&it.options){
+      body+=it.options.map(o=>`<label class="opt"><input type="radio" name="o${i}" value="${esc(o)}"> ${esc(o)}</label>`).join('');
+    }else{
+      body+=`<textarea id="a${i}" placeholder="Write your answer in English, Urdu or Roman Urdu…"></textarea>`;
+    }
+    body+=`<div style="margin-top:10px"><button data-i="${i}" class="chk">Check my answer</button></div><div id="r${i}"></div>`;
+    c.innerHTML=body; q.appendChild(c);
+  });
+  q.querySelectorAll('.chk').forEach(b=>b.onclick=()=>check(+b.dataset.i,b));
+  q.scrollIntoView({behavior:'smooth'});
+}
+
+async function check(i,btn){
+  const it=QS[i]; let ans='';
+  if(it.type==='mcq'&&it.options){const r=document.querySelector(`input[name="o${i}"]:checked`);ans=r?r.value:''}
+  else ans=($('a'+i)||{}).value||'';
+  if(!ans.trim()){$('r'+i).innerHTML='<p>Please answer first.</p>';return}
+  btn.disabled=true; $('r'+i).innerHTML='<p>Checking against your chapter…</p>';
+  try{
+    const r=await post('/api/check',{chapter,question:it,answer:ans,lang:lang(),...meta()});
+    const k=r.level==='good'?'g':r.level==='partial'?'m':'b';
+    $('r'+i).innerHTML=`<div class="res ${k} ${lang()==='Urdu'?'ur':''}"><h4>${esc(r.score)} / ${esc(r.out_of)}</h4><p><b>✔</b> ${esc(r.right)}</p><p><b>✖</b> ${esc(r.missing)}</p><p><b>Model answer:</b> ${esc(r.model_answer)}</p><p><i>${esc(r.tip)}</i></p></div>`;
+  }catch(e){$('r'+i).innerHTML='<p>'+esc(e.message)+'</p>'}
+  btn.disabled=false;
+}
+</script>
+</body>
+</html>
